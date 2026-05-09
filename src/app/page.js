@@ -1,65 +1,77 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+import { useState } from 'react';
+import Header from '@/components/Header';
+import CVAnalysis from '@/components/CVAnalysis';
+import JobDashboard from '@/components/JobDashboard';
+import ApplicationTracker from '@/components/ApplicationTracker';
+import CareerGuidance from '@/components/CareerGuidance';
+
+const TABS = [
+  { id: 'cv',       label: '🧬 CV Analysis',           title: 'Profile Analysis' },
+  { id: 'jobs',     label: '🔍 Job Dashboard',          title: 'Germany Biotech Jobs' },
+  { id: 'tracker',  label: '📋 Application Tracker',    title: 'Application Manager' },
+  { id: 'guidance', label: '🎯 Career Guidance',        title: 'Strategic Guidance' },
+];
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('cv');
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [jobStatuses, setJobStatuses] = useState({}); // { jobId: 'applied'|'interview'|'rejected'|'waiting' }
+
+  const handleSaveJob = (job) => {
+    setSavedJobs((prev) => {
+      const exists = prev.find((j) => j.id === job.id);
+      if (exists) return prev.filter((j) => j.id !== job.id);
+      return [...prev, job];
+    });
+  };
+
+  const handleSetStatus = (jobId, status) => {
+    setJobStatuses((prev) => ({ ...prev, [jobId]: status }));
+  };
+
+  const isSaved = (jobId) => savedJobs.some((j) => j.id === jobId);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="app">
+      <Header savedCount={savedJobs.length} />
+
+      <nav className="tab-nav">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            id={`tab-${tab.id}`}
+            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <main className="main-content">
+        {activeTab === 'cv' && <CVAnalysis />}
+
+        {activeTab === 'jobs' && (
+          <JobDashboard
+            savedJobs={savedJobs}
+            isSaved={isSaved}
+            onSaveJob={handleSaveJob}
+            jobStatuses={jobStatuses}
+            onSetStatus={handleSetStatus}
+          />
+        )}
+
+        {activeTab === 'tracker' && (
+          <ApplicationTracker
+            savedJobs={savedJobs}
+            jobStatuses={jobStatuses}
+            onSetStatus={handleSetStatus}
+            onGoToJobs={() => setActiveTab('jobs')}
+          />
+        )}
+
+        {activeTab === 'guidance' && <CareerGuidance />}
       </main>
     </div>
   );
