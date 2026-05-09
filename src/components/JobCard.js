@@ -9,6 +9,35 @@ const COMPETITION_COLORS = {
   High: 'var(--red)',
 };
 
+// Trusted job/company domains — only these are allowed as direct Apply links.
+// Scraped LinkedIn URLs sometimes redirect through ad/affiliate networks (AliExpress etc.)
+// Any URL NOT matching this whitelist gets replaced with a safe Google Jobs search.
+const TRUSTED_DOMAINS = [
+  'linkedin.com', 'xing.com', 'stepstone.de', 'indeed.com', 'indeed.de',
+  'glassdoor.com', 'arbeitsagentur.de', 'monster.de', 'jobs.de',
+  'vitrolife.com', 'ferring.com', 'igenomix.com', 'emdgroup.com',
+  'coopersurgical.com', 'kinderwunsch.de', 'qiagen.com', 'thermofisher.com',
+  'helmholtz-munich.de', 'molgen.mpg.de', 'gedeonrichter.com', 'eugin.de',
+  'sartorius.com', 'biotest.com', 'bayer.com', 'merckgroup.com',
+  'jobs.thermofisher.com', 'career.bayer.com',
+];
+
+function getSafeApplyUrl(url, jobTitle, company) {
+  if (!url || url === '#') {
+    // Fallback: Google Jobs search
+    return `https://www.google.com/search?q=${encodeURIComponent(`${jobTitle} ${company} job`)}`;
+  }
+  try {
+    const hostname = new URL(url).hostname.replace('www.', '');
+    const isTrusted = TRUSTED_DOMAINS.some((domain) => hostname.endsWith(domain));
+    if (isTrusted) return url;
+    // Unsafe URL → redirect to Google Jobs search for this role instead
+    return `https://www.google.com/search?q=${encodeURIComponent(`${jobTitle} ${company} job apply`)}&ibp=htl;jobs`;
+  } catch {
+    return `https://www.google.com/search?q=${encodeURIComponent(`${jobTitle} ${company} job apply`)}&ibp=htl;jobs`;
+  }
+}
+
 export default function JobCard({ job, isSaved, onSave, status, onSetStatus }) {
   const [expanded, setExpanded] = useState(false);
   const scores = job.scores || {};
@@ -170,10 +199,11 @@ export default function JobCard({ job, isSaved, onSave, status, onSetStatus }) {
       {/* ---- Action Buttons ---- */}
       <div className="job-card-actions">
         <a
-          href={job.applicationLink || '#'}
+          href={getSafeApplyUrl(job.applicationLink, job.title, job.company)}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-primary btn-sm"
+          title={job.applicationLink?.startsWith('http') ? job.applicationLink : 'Search on Google Jobs'}
         >
           🚀 Apply Now
         </a>
